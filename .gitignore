@@ -1,0 +1,47 @@
+# ========================================
+#  Python
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+*.egg
+*.whl
+venv/
+.env
+
+# PyInstaller
+*.spec
+*.exe
+build/
+
+# ========================================
+#  Android / Gradle
+# ========================================
+*.iml
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+
+# ========================================
+#  IDE / Editors
+# ========================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========================================
+#  Build Artifacts
+# ========================================
+pc/build/
+pc/dist/
+pc/*.exe
+pc/*.spec
