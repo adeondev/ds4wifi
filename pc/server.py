@@ -359,6 +359,32 @@ def rumble_callback(client, target, large_motor, small_motor, led_number, user_d
         except Exception:
             pass
 
+def safe_clamp(value, lo, hi):
+    """Converte para float de forma defensiva e limita ao intervalo [lo, hi].
+
+    Protege contra valores ausentes, NaN/Infinity ou tipos inesperados num pacote
+    corrompido — qualquer um deles deixaria o controle virtual num estado bizarro.
+    """
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if f != f:  # NaN
+        return 0.0
+    if f == float('inf'):
+        return hi
+    if f == float('-inf'):
+        return lo
+    return max(lo, min(f, hi))
+
+def safe_axis(value):
+    """Lê um eixo do D-pad garantindo que seja exatamente -1, 0 ou 1."""
+    try:
+        v = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(-1, min(v, 1))
+
 def get_dpad_direction(x, y):
     if x == 0 and y == -1: return vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTH
     elif x == 1 and y == -1: return vg.DS4_DPAD_DIRECTIONS.DS4_BUTTON_DPAD_NORTHEAST
@@ -653,22 +679,24 @@ def socket_receiver():
                                     current_state[key] = packet[key]
                         
                         # 1. Atualiza Analógicos
-                        lx = float(packet.get("lx", 0.0))
-                        ly = -float(packet.get("ly", 0.0))
-                        rx = float(packet.get("rx", 0.0))
-                        ry = -float(packet.get("ry", 0.0))
-                        gamepad.left_joystick_float(lx, ly)
-                        gamepad.right_joystick_float(rx, ry)
+                        # No Android, puxar o analógico para cima gera Y negativo (-1.0).
+                        # Para o vgamepad / DirectX interpretar cima como cima, o eixo Y precisa ser invertido (-ly / -ry).
+                        lx = safe_clamp(packet.get("lx", 0.0), -1.0, 1.0)
+                        ly = safe_clamp(packet.get("ly", 0.0), -1.0, 1.0)
+                        rx = safe_clamp(packet.get("rx", 0.0), -1.0, 1.0)
+                        ry = safe_clamp(packet.get("ry", 0.0), -1.0, 1.0)
+                        gamepad.left_joystick_float(lx, -ly)
+                        gamepad.right_joystick_float(rx, -ry)
 
                         # 2. Atualiza Gatilhos
-                        lt = float(packet.get("lt", 0.0))
-                        rt = float(packet.get("rt", 0.0))
+                        lt = safe_clamp(packet.get("lt", 0.0), 0.0, 1.0)
+                        rt = safe_clamp(packet.get("rt", 0.0), 0.0, 1.0)
                         gamepad.left_trigger_float(lt)
                         gamepad.right_trigger_float(rt)
 
                         # 3. Atualiza DPAD
-                        dpad_x = int(packet.get("dpad_x", 0))
-                        dpad_y = int(packet.get("dpad_y", 0))
+                        dpad_x = safe_axis(packet.get("dpad_x", 0))
+                        dpad_y = safe_axis(packet.get("dpad_y", 0))
                         gamepad.directional_pad(get_dpad_direction(dpad_x, dpad_y))
 
                         # 4. Atualiza Botões Comuns
