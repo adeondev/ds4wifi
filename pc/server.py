@@ -404,9 +404,9 @@ def draw_stick_visual(x_val, y_val, label):
     """Desenha uma representação visual 2D do analógico como um mini-grid."""
     size = 7
     center = size // 2
-    # Mapeia -1..1 para 0..size-1
+    # Mapeia -1..1 para 0..size-1 (onde Y positivo +1.0 eh topo row 0, e -1.0 eh base row size-1)
     px = int((x_val + 1.0) / 2.0 * (size - 1))
-    py = int((y_val + 1.0) / 2.0 * (size - 1))
+    py = int((1.0 - y_val) / 2.0 * (size - 1))
     px = max(0, min(px, size - 1))
     py = max(0, min(py, size - 1))
 
@@ -679,14 +679,14 @@ def socket_receiver():
                                     current_state[key] = packet[key]
                         
                         # 1. Atualiza Analógicos
-                        # No Android, puxar o analógico para cima gera Y negativo (-1.0).
-                        # Para o vgamepad / DirectX interpretar cima como cima, o eixo Y precisa ser invertido (-ly / -ry).
+                        # No controle/celular, Y positivo (+1.0) representa CIMA e Y negativo (-1.0) representa BAIXO.
+                        # O vgamepad espera +1.0 para CIMA (255) e -1.0 para BAIXO (1).
                         lx = safe_clamp(packet.get("lx", 0.0), -1.0, 1.0)
                         ly = safe_clamp(packet.get("ly", 0.0), -1.0, 1.0)
                         rx = safe_clamp(packet.get("rx", 0.0), -1.0, 1.0)
                         ry = safe_clamp(packet.get("ry", 0.0), -1.0, 1.0)
-                        gamepad.left_joystick_float(lx, -ly)
-                        gamepad.right_joystick_float(rx, -ry)
+                        gamepad.left_joystick_float(lx, ly)
+                        gamepad.right_joystick_float(rx, ry)
 
                         # 2. Atualiza Gatilhos
                         lt = safe_clamp(packet.get("lt", 0.0), 0.0, 1.0)
